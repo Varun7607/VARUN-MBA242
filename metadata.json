@@ -1,0 +1,6 @@
+{
+  "name": "BookLoop – Student Book Exchange",
+  "description": "Campus-based academic book exchange platform for students at DBS Global University, Dehradun to buy, sell, exchange, and donate second-hand textbooks.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

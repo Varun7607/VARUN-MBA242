@@ -1,0 +1,561 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // =========================================================================
+    // Primitive Helpers (Phase 3 + Red Team Patched)
+    // =========================================================================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Zero-DB-read admin check safe for list queries (no get/exists)
+    function isBootstrappedAdmin() {
+      return isVerified() && request.auth.token.email == 'y68046626@gmail.com';
+    }
+
+    // Full admin check for single-document operations
+    function isAdmin() {
+      return isBootstrappedAdmin() || (
+        isVerified() && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isShortId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 64 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isStringLen(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isValidEmail(val) {
+      return isStringLen(val, 3, 150) && val.matches('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$');
+    }
+
+    // =========================================================================
+    // Validation Blueprints (Pillar 2 - Anti-Update-Gap)
+    // =========================================================================
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll([
+          'userId', 'studentName', 'email', 'studentId', 'college',
+          'course', 'semester', 'contactNumber', 'profilePhoto',
+          'userStatus', 'registrationDate', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'userId', 'studentName', 'email', 'studentId', 'college',
+          'course', 'semester', 'contactNumber', 'profilePhoto',
+          'userStatus', 'registrationDate', 'updatedAt'
+        ])
+        && data.userId == userId
+        && isValidId(data.userId)
+        && isStringLen(data.studentName, 1, 100)
+        && isValidEmail(data.email)
+        && isStringLen(data.studentId, 1, 40)
+        && isStringLen(data.college, 1, 120)
+        && isStringLen(data.course, 1, 80)
+        && isStringLen(data.semester, 1, 30)
+        && isStringLen(data.contactNumber, 7, 20)
+        && isStringLen(data.profilePhoto, 0, 120000)
+        && data.userStatus in ['Active', 'Inactive']
+        && data.registrationDate is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCategory(data, categoryId) {
+      return data.keys().hasAll(['categoryId', 'categoryName', 'description', 'active', 'createdAt'])
+        && data.keys().hasOnly(['categoryId', 'categoryName', 'description', 'active', 'createdAt'])
+        && data.categoryId == categoryId
+        && isShortId(data.categoryId)
+        && isStringLen(data.categoryName, 1, 80)
+        && isStringLen(data.description, 1, 300)
+        && data.active is bool
+        && data.createdAt is timestamp;
+    }
+
+    function isValidBook(data, bookId) {
+      return data.keys().hasAll([
+          'bookId', 'bookTitle', 'author', 'isbn', 'category', 'course',
+          'semester', 'edition', 'publisher', 'description', 'condition',
+          'originalPrice', 'sellingPrice', 'exchangeAvailable', 'donationAvailable',
+          'bookImage', 'sellerUid', 'sellerName', 'sellerCollege', 'sellerCourse',
+          'availabilityStatus', 'featured', 'completedRequestId', 'listingDate', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'bookId', 'bookTitle', 'author', 'isbn', 'category', 'course',
+          'semester', 'edition', 'publisher', 'description', 'condition',
+          'originalPrice', 'sellingPrice', 'exchangeAvailable', 'donationAvailable',
+          'bookImage', 'sellerUid', 'sellerName', 'sellerCollege', 'sellerCourse',
+          'availabilityStatus', 'featured', 'completedRequestId', 'listingDate', 'updatedAt'
+        ])
+        && data.bookId == bookId
+        && isShortId(data.bookId)
+        && isStringLen(data.bookTitle, 1, 160)
+        && isStringLen(data.author, 1, 120)
+        && isStringLen(data.isbn, 0, 30)
+        && isStringLen(data.category, 1, 80)
+        && isStringLen(data.course, 1, 80)
+        && isStringLen(data.semester, 1, 30)
+        && isStringLen(data.edition, 1, 40)
+        && isStringLen(data.publisher, 1, 100)
+        && isStringLen(data.description, 0, 1000)
+        && data.condition in ['Like New', 'Very Good', 'Good', 'Acceptable']
+        && data.originalPrice is number && data.originalPrice > 0 && data.originalPrice <= 50000
+        && data.sellingPrice is number && data.sellingPrice >= 0 && data.sellingPrice <= 50000
+        && data.exchangeAvailable is bool
+        && data.donationAvailable is bool
+        && isStringLen(data.bookImage, 0, 120000)
+        && isValidId(data.sellerUid)
+        && isStringLen(data.sellerName, 1, 100)
+        && isStringLen(data.sellerCollege, 1, 120)
+        && isStringLen(data.sellerCourse, 1, 80)
+        && data.availabilityStatus in ['Available', 'Requested', 'Sold', 'Exchanged', 'Donated', 'Inactive']
+        && data.featured is bool
+        && isStringLen(data.completedRequestId, 0, 128)
+        && data.listingDate is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidBookRequest(data, requestId) {
+      return data.keys().hasAll([
+          'requestId', 'bookId', 'bookTitle', 'bookAuthor',
+          'buyerUid', 'buyerName', 'buyerEmail', 'buyerContact', 'buyerCourse',
+          'sellerUid', 'sellerName', 'sellerEmail', 'sellerContact', 'meetupNote',
+          'requestType', 'requestMessage', 'proposedPrice', 'requestStatus',
+          'buyerConfirmed', 'sellerConfirmed', 'requestDate', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'requestId', 'bookId', 'bookTitle', 'bookAuthor',
+          'buyerUid', 'buyerName', 'buyerEmail', 'buyerContact', 'buyerCourse',
+          'sellerUid', 'sellerName', 'sellerEmail', 'sellerContact', 'meetupNote',
+          'requestType', 'requestMessage', 'proposedPrice', 'requestStatus',
+          'buyerConfirmed', 'sellerConfirmed', 'requestDate', 'updatedAt'
+        ])
+        && data.requestId == requestId
+        && isValidId(data.requestId)
+        && isShortId(data.bookId)
+        && isStringLen(data.bookTitle, 1, 160)
+        && isStringLen(data.bookAuthor, 1, 120)
+        && isValidId(data.buyerUid)
+        && isStringLen(data.buyerName, 1, 100)
+        && isValidEmail(data.buyerEmail)
+        && isStringLen(data.buyerContact, 7, 20)
+        && isStringLen(data.buyerCourse, 1, 80)
+        && isValidId(data.sellerUid)
+        && data.buyerUid != data.sellerUid
+        && isStringLen(data.sellerName, 1, 100)
+        && isStringLen(data.sellerEmail, 0, 150)
+        && isStringLen(data.sellerContact, 0, 20)
+        && isStringLen(data.meetupNote, 0, 300)
+        && data.requestType in ['Purchase', 'Exchange', 'Donation']
+        && isStringLen(data.requestMessage, 0, 500)
+        && data.proposedPrice is number && data.proposedPrice >= 0 && data.proposedPrice <= 50000
+        && data.requestStatus in ['Pending', 'Accepted', 'Rejected', 'Completed', 'Cancelled']
+        && data.buyerConfirmed is bool
+        && data.sellerConfirmed is bool
+        && data.requestDate is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidTransaction(data, transactionId) {
+      return data.keys().hasAll([
+          'transactionId', 'requestId', 'bookId', 'bookTitle', 'bookAuthor',
+          'buyerUid', 'buyerName', 'buyerEmail', 'sellerUid', 'sellerName',
+          'sellerEmail', 'transactionType', 'finalPrice', 'transactionStatus', 'transactionDate'
+        ])
+        && data.keys().hasOnly([
+          'transactionId', 'requestId', 'bookId', 'bookTitle', 'bookAuthor',
+          'buyerUid', 'buyerName', 'buyerEmail', 'sellerUid', 'sellerName',
+          'sellerEmail', 'transactionType', 'finalPrice', 'transactionStatus', 'transactionDate'
+        ])
+        && data.transactionId == transactionId
+        && isValidId(data.transactionId)
+        && isValidId(data.requestId)
+        && isShortId(data.bookId)
+        && isStringLen(data.bookTitle, 1, 160)
+        && isStringLen(data.bookAuthor, 1, 120)
+        && isValidId(data.buyerUid)
+        && isStringLen(data.buyerName, 1, 100)
+        && isValidEmail(data.buyerEmail)
+        && isValidId(data.sellerUid)
+        && data.buyerUid != data.sellerUid
+        && isStringLen(data.sellerName, 1, 100)
+        && isStringLen(data.sellerEmail, 0, 150)
+        && data.transactionType in ['Purchase', 'Exchange', 'Donation']
+        && data.finalPrice is number && data.finalPrice >= 0 && data.finalPrice <= 50000
+        && data.transactionStatus == 'Completed'
+        && data.transactionDate is timestamp;
+    }
+
+    function isValidNotification(data, notificationId) {
+      return data.keys().hasAll([
+          'notificationId', 'recipientUid', 'senderUid', 'requestId',
+          'bookId', 'title', 'message', 'read', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'notificationId', 'recipientUid', 'senderUid', 'requestId',
+          'bookId', 'title', 'message', 'read', 'createdAt'
+        ])
+        && data.notificationId == notificationId
+        && isValidId(data.notificationId)
+        && isValidId(data.recipientUid)
+        && isValidId(data.senderUid)
+        && isValidId(data.requestId)
+        && isShortId(data.bookId)
+        && isStringLen(data.title, 1, 120)
+        && isStringLen(data.message, 1, 300)
+        && data.read is bool
+        && data.createdAt is timestamp;
+    }
+
+    // =========================================================================
+    // Collection 1: /users/{userId} — Strictly Private Student Profiles (Pillar 6)
+    // =========================================================================
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if false;
+
+      allow create: if isVerified()
+        && isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().email == request.auth.token.email
+        && incoming().userStatus == 'Active'
+        && incoming().registrationDate == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerified()
+        && isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().userId == existing().userId
+        && incoming().email == existing().email
+        && incoming().registrationDate == existing().registrationDate
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'studentName', 'studentId', 'college', 'course', 'semester',
+          'contactNumber', 'profilePhoto', 'userStatus', 'updatedAt'
+        ]);
+
+      allow delete: if false;
+    }
+
+    // =========================================================================
+    // Collection 2: /categories/{categoryId} — Academic Categories
+    // =========================================================================
+    match /categories/{categoryId} {
+      allow get: if isShortId(categoryId) && isSignedIn() && (existing().active == true || isAdmin());
+      allow list: if isSignedIn() && (resource.data.active == true || isBootstrappedAdmin());
+
+      allow create: if isAdmin()
+        && isShortId(categoryId)
+        && isValidCategory(incoming(), categoryId)
+        && incoming().createdAt == request.time;
+
+      allow update: if isAdmin()
+        && isShortId(categoryId)
+        && isValidCategory(incoming(), categoryId)
+        && incoming().categoryId == existing().categoryId
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['categoryName', 'description', 'active']);
+
+      allow delete: if isAdmin() && isShortId(categoryId);
+    }
+
+    // =========================================================================
+    // Collection 3: /books/{bookId} — Campus Book Listings
+    // =========================================================================
+    match /books/{bookId} {
+      allow get: if isShortId(bookId) && isSignedIn() && (
+        existing().availabilityStatus in ['Available', 'Requested'] ||
+        existing().sellerUid == request.auth.uid ||
+        isAdmin()
+      );
+
+      allow list: if isSignedIn() && (
+        resource.data.availabilityStatus in ['Available', 'Requested'] ||
+        resource.data.sellerUid == request.auth.uid ||
+        isBootstrappedAdmin()
+      );
+
+      allow create: if isVerified()
+        && isShortId(bookId)
+        && isValidBook(incoming(), bookId)
+        && incoming().availabilityStatus == 'Available'
+        && incoming().completedRequestId == ''
+        && incoming().listingDate == request.time
+        && incoming().updatedAt == request.time
+        && (
+          (incoming().sellerUid == request.auth.uid && incoming().featured == false) ||
+          isAdmin()
+        );
+
+      allow update: if isVerified()
+        && isShortId(bookId)
+        && isValidBook(incoming(), bookId)
+        && incoming().bookId == existing().bookId
+        && incoming().sellerUid == existing().sellerUid
+        && incoming().listingDate == existing().listingDate
+        && incoming().updatedAt == request.time
+        && (
+          // Action 1: Original Seller updates their own listing details or availability
+          (
+            existing().sellerUid == request.auth.uid
+            && !(existing().availabilityStatus in ['Sold', 'Exchanged', 'Donated'])
+            && incoming().featured == existing().featured
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'bookTitle', 'author', 'isbn', 'category', 'course', 'semester',
+              'edition', 'publisher', 'description', 'condition', 'originalPrice',
+              'sellingPrice', 'exchangeAvailable', 'donationAvailable', 'bookImage',
+              'sellerName', 'sellerCollege', 'sellerCourse', 'availabilityStatus',
+              'completedRequestId', 'updatedAt'
+            ])
+          ) ||
+          // Action 2: Atomic Handover Completion updates availabilityStatus in batch with Request completion
+          (
+            existing().availabilityStatus in ['Available', 'Requested']
+            && incoming().availabilityStatus in ['Sold', 'Exchanged', 'Donated']
+            && isValidId(incoming().completedRequestId)
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'availabilityStatus', 'completedRequestId', 'updatedAt'
+            ])
+            && getAfter(/databases/$(database)/documents/requests/$(incoming().completedRequestId)).data.requestStatus == 'Completed'
+            && getAfter(/databases/$(database)/documents/requests/$(incoming().completedRequestId)).data.bookId == bookId
+            && (
+              getAfter(/databases/$(database)/documents/requests/$(incoming().completedRequestId)).data.buyerUid == request.auth.uid ||
+              getAfter(/databases/$(database)/documents/requests/$(incoming().completedRequestId)).data.sellerUid == request.auth.uid ||
+              isAdmin()
+            )
+          ) ||
+          // Action 3: Verified Campus Admin maintenance
+          (
+            isAdmin()
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'bookTitle', 'author', 'isbn', 'category', 'course', 'semester',
+              'edition', 'publisher', 'description', 'condition', 'originalPrice',
+              'sellingPrice', 'exchangeAvailable', 'donationAvailable', 'bookImage',
+              'availabilityStatus', 'featured', 'completedRequestId', 'updatedAt'
+            ])
+          )
+        );
+
+      allow delete: if isVerified()
+        && isShortId(bookId)
+        && (
+          (existing().sellerUid == request.auth.uid && existing().availabilityStatus in ['Available', 'Inactive']) ||
+          isAdmin()
+        );
+    }
+
+    // =========================================================================
+    // Collection 4: /requests/{requestId} — Private Buyer-Seller Requests
+    // =========================================================================
+    match /requests/{requestId} {
+      allow get: if isValidId(requestId) && isSignedIn() && (
+        existing().buyerUid == request.auth.uid ||
+        existing().sellerUid == request.auth.uid ||
+        isAdmin()
+      );
+
+      allow list: if isSignedIn() && (
+        resource.data.buyerUid == request.auth.uid ||
+        resource.data.sellerUid == request.auth.uid ||
+        isBootstrappedAdmin()
+      );
+
+      allow create: if isVerified()
+        && isValidId(requestId)
+        && isValidBookRequest(incoming(), requestId)
+        && incoming().buyerUid == request.auth.uid
+        && incoming().buyerEmail == request.auth.token.email
+        && incoming().sellerEmail == ''
+        && incoming().sellerContact == ''
+        && incoming().meetupNote == ''
+        && incoming().requestStatus == 'Pending'
+        && incoming().buyerConfirmed == false
+        && incoming().sellerConfirmed == false
+        && incoming().requestDate == request.time
+        && incoming().updatedAt == request.time
+        && exists(/databases/$(database)/documents/books/$(incoming().bookId))
+        && get(/databases/$(database)/documents/books/$(incoming().bookId)).data.sellerUid == incoming().sellerUid
+        && get(/databases/$(database)/documents/books/$(incoming().bookId)).data.availabilityStatus == 'Available'
+        && (
+          incoming().requestType == 'Purchase' ||
+          (incoming().requestType == 'Exchange' && get(/databases/$(database)/documents/books/$(incoming().bookId)).data.exchangeAvailable == true) ||
+          (incoming().requestType == 'Donation' && get(/databases/$(database)/documents/books/$(incoming().bookId)).data.donationAvailable == true)
+        );
+
+      allow update: if isVerified()
+        && isValidId(requestId)
+        && isValidBookRequest(incoming(), requestId)
+        && incoming().requestId == existing().requestId
+        && incoming().bookId == existing().bookId
+        && incoming().bookTitle == existing().bookTitle
+        && incoming().bookAuthor == existing().bookAuthor
+        && incoming().buyerUid == existing().buyerUid
+        && incoming().buyerEmail == existing().buyerEmail
+        && incoming().sellerUid == existing().sellerUid
+        && incoming().requestType == existing().requestType
+        && incoming().requestDate == existing().requestDate
+        && incoming().updatedAt == request.time
+        // Terminal State Lock (Pillar 4 #6)
+        && !(existing().requestStatus in ['Completed', 'Rejected', 'Cancelled'])
+        && (
+          // Action 1: Buyer cancels a Pending request
+          (
+            existing().buyerUid == request.auth.uid
+            && existing().requestStatus == 'Pending'
+            && incoming().requestStatus == 'Cancelled'
+            && incoming().diff(existing()).affectedKeys().hasOnly(['requestStatus', 'updatedAt'])
+          ) ||
+          // Action 2: Seller (or Admin in campus pilot test) accepts a Pending request and shares contact/meetup info
+          (
+            (existing().sellerUid == request.auth.uid || isAdmin())
+            && existing().requestStatus == 'Pending'
+            && incoming().requestStatus == 'Accepted'
+            && isValidEmail(incoming().sellerEmail)
+            && isStringLen(incoming().sellerContact, 7, 20)
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'requestStatus', 'sellerEmail', 'sellerContact', 'meetupNote', 'updatedAt'
+            ])
+          ) ||
+          // Action 3: Seller (or Admin in campus pilot test) rejects a Pending request
+          (
+            (existing().sellerUid == request.auth.uid || isAdmin())
+            && existing().requestStatus == 'Pending'
+            && incoming().requestStatus == 'Rejected'
+            && incoming().diff(existing()).affectedKeys().hasOnly(['requestStatus', 'updatedAt'])
+          ) ||
+          // Action 4: Buyer confirms handover on an Accepted request (completes if seller already confirmed)
+          (
+            existing().buyerUid == request.auth.uid
+            && existing().requestStatus == 'Accepted'
+            && existing().buyerConfirmed == false
+            && incoming().buyerConfirmed == true
+            && incoming().sellerConfirmed == existing().sellerConfirmed
+            && (
+              (existing().sellerConfirmed == false && incoming().requestStatus == 'Accepted'
+                && incoming().diff(existing()).affectedKeys().hasOnly(['buyerConfirmed', 'updatedAt'])) ||
+              (existing().sellerConfirmed == true && incoming().requestStatus == 'Completed'
+                && incoming().diff(existing()).affectedKeys().hasOnly(['buyerConfirmed', 'requestStatus', 'updatedAt']))
+            )
+          ) ||
+          // Action 5: Seller (or Admin in campus pilot test) confirms handover on an Accepted request (completes if buyer already confirmed)
+          (
+            (existing().sellerUid == request.auth.uid || isAdmin())
+            && existing().requestStatus == 'Accepted'
+            && existing().sellerConfirmed == false
+            && incoming().sellerConfirmed == true
+            && incoming().buyerConfirmed == existing().buyerConfirmed
+            && (
+              (existing().buyerConfirmed == false && incoming().requestStatus == 'Accepted'
+                && incoming().diff(existing()).affectedKeys().hasOnly(['sellerConfirmed', 'updatedAt'])) ||
+              (existing().buyerConfirmed == true && incoming().requestStatus == 'Completed'
+                && incoming().diff(existing()).affectedKeys().hasOnly(['sellerConfirmed', 'requestStatus', 'updatedAt']))
+            )
+          )
+        );
+
+      allow delete: if false;
+    }
+
+    // =========================================================================
+    // Collection 5: /transactions/{transactionId} — Immutable Transaction Ledger
+    // =========================================================================
+    match /transactions/{transactionId} {
+      allow get: if isValidId(transactionId) && isSignedIn() && (
+        existing().buyerUid == request.auth.uid ||
+        existing().sellerUid == request.auth.uid ||
+        isAdmin()
+      );
+
+      allow list: if isSignedIn() && (
+        resource.data.buyerUid == request.auth.uid ||
+        resource.data.sellerUid == request.auth.uid ||
+        isBootstrappedAdmin()
+      );
+
+      allow create: if isVerified()
+        && isValidId(transactionId)
+        && isValidTransaction(incoming(), transactionId)
+        && incoming().transactionDate == request.time
+        && (
+          incoming().buyerUid == request.auth.uid ||
+          incoming().sellerUid == request.auth.uid ||
+          isAdmin()
+        )
+        // Atomicity Guarantee (Pillar 7): linked request MUST be Completed in this batch
+        && getAfter(/databases/$(database)/documents/requests/$(incoming().requestId)).data.requestStatus == 'Completed'
+        && getAfter(/databases/$(database)/documents/requests/$(incoming().requestId)).data.bookId == incoming().bookId
+        && getAfter(/databases/$(database)/documents/requests/$(incoming().requestId)).data.buyerUid == incoming().buyerUid
+        && getAfter(/databases/$(database)/documents/requests/$(incoming().requestId)).data.sellerUid == incoming().sellerUid;
+
+      allow update, delete: if false;
+    }
+
+    // =========================================================================
+    // Collection 6: /notifications/{notificationId} — Automatic Request Alerts
+    // =========================================================================
+    match /notifications/{notificationId} {
+      allow get: if isValidId(notificationId) && isSignedIn() && existing().recipientUid == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.recipientUid == request.auth.uid;
+
+      allow create: if isVerified()
+        && isValidId(notificationId)
+        && isValidNotification(incoming(), notificationId)
+        && incoming().read == false
+        && incoming().createdAt == request.time
+        && (incoming().senderUid == request.auth.uid || isAdmin())
+        && existsAfter(/databases/$(database)/documents/requests/$(incoming().requestId))
+        && (
+          getAfter(/databases/$(database)/documents/requests/$(incoming().requestId)).data.buyerUid == incoming().recipientUid ||
+          getAfter(/databases/$(database)/documents/requests/$(incoming().requestId)).data.sellerUid == incoming().recipientUid
+        );
+
+      allow update: if isVerified()
+        && isValidId(notificationId)
+        && existing().recipientUid == request.auth.uid
+        && isValidNotification(incoming(), notificationId)
+        && incoming().read == true
+        && incoming().diff(existing()).affectedKeys().hasOnly(['read']);
+
+      allow delete: if isVerified()
+        && isValidId(notificationId)
+        && existing().recipientUid == request.auth.uid;
+    }
+
+    // =========================================================================
+    // Collection 7: /admins/{adminId} — Read-only Admin Registry
+    // =========================================================================
+    match /admins/{adminId} {
+      allow get: if isValidId(adminId) && isSignedIn() && request.auth.uid == adminId;
+      allow list, create, update, delete: if false;
+    }
+  }
+}

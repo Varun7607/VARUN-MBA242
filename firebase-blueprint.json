@@ -1,0 +1,616 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Registered student profile containing personal and academic details, strictly isolated to the owning student.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID of the student."
+        },
+        "studentName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Full name of the student."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 150,
+          "description": "Verified student email address."
+        },
+        "studentId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "University student enrollment ID."
+        },
+        "college": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "College or university name."
+        },
+        "course": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "Academic degree or program."
+        },
+        "semester": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 30,
+          "description": "Current academic semester."
+        },
+        "contactNumber": {
+          "type": "string",
+          "minLength": 7,
+          "maxLength": 20,
+          "description": "Phone or WhatsApp number for campus coordination."
+        },
+        "profilePhoto": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 120000,
+          "description": "Optional profile photo URL or compressed data URL."
+        },
+        "userStatus": {
+          "type": "string",
+          "enum": ["Active", "Inactive"],
+          "description": "Student account status."
+        },
+        "registrationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when student registered."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last profile update."
+        }
+      },
+      "required": [
+        "userId",
+        "studentName",
+        "email",
+        "studentId",
+        "college",
+        "course",
+        "semester",
+        "contactNumber",
+        "profilePhoto",
+        "userStatus",
+        "registrationDate",
+        "updatedAt"
+      ]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Academic subject category for organizing campus textbooks.",
+      "type": "object",
+      "properties": {
+        "categoryId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "categoryName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["categoryId", "categoryName", "description", "active", "createdAt"]
+    },
+    "Book": {
+      "title": "Book",
+      "description": "Second-hand academic textbook listed on the campus marketplace.",
+      "type": "object",
+      "properties": {
+        "bookId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "bookTitle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "author": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "isbn": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 30
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "course": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "semester": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 30
+        },
+        "edition": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "publisher": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "description": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 1000
+        },
+        "condition": {
+          "type": "string",
+          "enum": ["Like New", "Very Good", "Good", "Acceptable"]
+        },
+        "originalPrice": {
+          "type": "number"
+        },
+        "sellingPrice": {
+          "type": "number"
+        },
+        "exchangeAvailable": {
+          "type": "boolean"
+        },
+        "donationAvailable": {
+          "type": "boolean"
+        },
+        "bookImage": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 120000
+        },
+        "sellerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "sellerName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "sellerCollege": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "sellerCourse": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "availabilityStatus": {
+          "type": "string",
+          "enum": ["Available", "Requested", "Sold", "Exchanged", "Donated", "Inactive"]
+        },
+        "featured": {
+          "type": "boolean"
+        },
+        "completedRequestId": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 128
+        },
+        "listingDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "bookId",
+        "bookTitle",
+        "author",
+        "isbn",
+        "category",
+        "course",
+        "semester",
+        "edition",
+        "publisher",
+        "description",
+        "condition",
+        "originalPrice",
+        "sellingPrice",
+        "exchangeAvailable",
+        "donationAvailable",
+        "bookImage",
+        "sellerUid",
+        "sellerName",
+        "sellerCollege",
+        "sellerCourse",
+        "availabilityStatus",
+        "featured",
+        "completedRequestId",
+        "listingDate",
+        "updatedAt"
+      ]
+    },
+    "BookRequest": {
+      "title": "BookRequest",
+      "description": "Purchase, exchange, or donation request between a buyer and seller, visible only to the two participating students.",
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "bookId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "bookTitle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "bookAuthor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "buyerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "buyerName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "buyerEmail": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 150
+        },
+        "buyerContact": {
+          "type": "string",
+          "minLength": 7,
+          "maxLength": 20
+        },
+        "buyerCourse": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "sellerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "sellerName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "sellerEmail": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 150
+        },
+        "sellerContact": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 20
+        },
+        "meetupNote": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 300
+        },
+        "requestType": {
+          "type": "string",
+          "enum": ["Purchase", "Exchange", "Donation"]
+        },
+        "requestMessage": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 500
+        },
+        "proposedPrice": {
+          "type": "number"
+        },
+        "requestStatus": {
+          "type": "string",
+          "enum": ["Pending", "Accepted", "Rejected", "Completed", "Cancelled"]
+        },
+        "buyerConfirmed": {
+          "type": "boolean"
+        },
+        "sellerConfirmed": {
+          "type": "boolean"
+        },
+        "requestDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "requestId",
+        "bookId",
+        "bookTitle",
+        "bookAuthor",
+        "buyerUid",
+        "buyerName",
+        "buyerEmail",
+        "buyerContact",
+        "buyerCourse",
+        "sellerUid",
+        "sellerName",
+        "sellerEmail",
+        "sellerContact",
+        "meetupNote",
+        "requestType",
+        "requestMessage",
+        "proposedPrice",
+        "requestStatus",
+        "buyerConfirmed",
+        "sellerConfirmed",
+        "requestDate",
+        "updatedAt"
+      ]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Immutable record of a completed campus book purchase, exchange, or donation.",
+      "type": "object",
+      "properties": {
+        "transactionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "requestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "bookId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "bookTitle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "bookAuthor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "buyerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "buyerName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "buyerEmail": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 150
+        },
+        "sellerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "sellerName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "sellerEmail": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 150
+        },
+        "transactionType": {
+          "type": "string",
+          "enum": ["Purchase", "Exchange", "Donation"]
+        },
+        "finalPrice": {
+          "type": "number"
+        },
+        "transactionStatus": {
+          "type": "string",
+          "enum": ["Completed"]
+        },
+        "transactionDate": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "transactionId",
+        "requestId",
+        "bookId",
+        "bookTitle",
+        "bookAuthor",
+        "buyerUid",
+        "buyerName",
+        "buyerEmail",
+        "sellerUid",
+        "sellerName",
+        "sellerEmail",
+        "transactionType",
+        "finalPrice",
+        "transactionStatus",
+        "transactionDate"
+      ]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "In-app notification triggered automatically when a book request is submitted or updated.",
+      "type": "object",
+      "properties": {
+        "notificationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "recipientUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "senderUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "requestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "bookId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "read": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "notificationId",
+        "recipientUid",
+        "senderUid",
+        "requestId",
+        "bookId",
+        "title",
+        "message",
+        "read",
+        "createdAt"
+      ]
+    },
+    "AdminRole": {
+      "title": "AdminRole",
+      "description": "Trusted campus administrator lookup document (server/console managed only).",
+      "type": "object",
+      "properties": {
+        "active": {
+          "type": "boolean"
+        }
+      },
+      "required": ["active"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private student profile documents isolated to the owning user."
+    },
+    "/categories/{categoryId}": {
+      "schema": { "$ref": "#/entities/Category" },
+      "description": "Academic subject categories for the BookLoop catalogue."
+    },
+    "/books/{bookId}": {
+      "schema": { "$ref": "#/entities/Book" },
+      "description": "Campus textbook listings with seller-only edit controls and atomic completion updates."
+    },
+    "/requests/{requestId}": {
+      "schema": { "$ref": "#/entities/BookRequest" },
+      "description": "Private buyer-seller book requests with state machine enforcement."
+    },
+    "/transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/Transaction" },
+      "description": "Immutable completed transaction ledger created atomically upon mutual handover confirmation."
+    },
+    "/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/Notification" },
+      "description": "Private per-user notifications for incoming requests and status changes."
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminRole" },
+      "description": "Read-only admin registry used for trusted RBAC checks."
+    }
+  }
+}
